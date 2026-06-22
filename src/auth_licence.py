@@ -1,53 +1,27 @@
+import json
 from dataclasses import dataclass
-from enum import Enum
-from functools import wraps
-from http import HTTPStatus
-
-class Role(Enum):
-    FREE = 1
-    PRO = 2
-    ADMIN = 3
+from datetime import datetime
 
 @dataclass
-class User:
-    id: int
-    role: Role
-
-def require_role(role):
-    def decorator(func):
-        @wraps(func)
-        def wrapper(self, user, *args, **kwargs):
-            if user.role != role:
-                raise Exception(f"403 Forbidden: User role {user.role} is not {role}")
-            return func(self, user, *args, **kwargs)
-        return wrapper
-    return decorator
+class RevenueData:
+    revenue: float
+    user_id: int
+    timestamp: str
 
 class AuthLicence:
     def __init__(self):
-        self.users = {}
+        self.revenue_data = []
 
-    def signup(self, id, role):
-        self.users[id] = User(id, role)
+    def track_revenue(self, revenue: float, user_id: int):
+        self.revenue_data.append(RevenueData(revenue, user_id, datetime.now().strftime("%Y-%m-%d %H:%M:%S")))
 
-    @require_role(Role.FREE)
-    def free_endpoint(self, user):
-        return "Free endpoint"
+    def get_analytics(self):
+        total_revenue = sum(data.revenue for data in self.revenue_data)
+        user_activity = {data.user_id: sum(d.revenue for d in self.revenue_data if d.user_id == data.user_id) for data in self.revenue_data}
+        return total_revenue, user_activity
 
-    @require_role(Role.PRO)
-    def pro_endpoint(self, user):
-        return "Pro endpoint"
-
-    @require_role(Role.ADMIN)
-    def admin_endpoint(self, user):
-        return "Admin endpoint"
-
-    def get_user(self, id):
-        return self.users.get(id)
-
-    def call_endpoint(self, endpoint_name, user):
-        endpoint = getattr(self, endpoint_name, None)
-        if endpoint:
-            return endpoint(user)
-        else:
-            raise Exception(f"Endpoint {endpoint_name} not found")
+    def detect_fraud(self):
+        # Simple fraud detection: if a user has more than 10 transactions in the last minute
+        recent_transactions = [data for data in self.revenue_data if (datetime.now() - datetime.strptime(data.timestamp, "%Y-%m-%d %H:%M:%S")).total_seconds() < 60]
+        user_transactions = {data.user_id: sum(1 for d in recent_transactions if d.user_id == data.user_id) for data in recent_transactions}
+        return {user_id: count for user_id, count in user_transactions.items() if count > 10}

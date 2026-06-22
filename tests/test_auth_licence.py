@@ -1,50 +1,23 @@
-from auth_licence import AuthLicence, Role, User
+from auth_licence import AuthLicence, RevenueData
 
-def test_signup():
-    auth = AuthLicence()
-    auth.signup(1, Role.FREE)
-    assert auth.get_user(1).role == Role.FREE
+def test_track_revenue():
+    auth_licence = AuthLicence()
+    auth_licence.track_revenue(10.0, 1)
+    assert len(auth_licence.revenue_data) == 1
+    assert auth_licence.revenue_data[0].revenue == 10.0
+    assert auth_licence.revenue_data[0].user_id == 1
 
-def test_free_endpoint():
-    auth = AuthLicence()
-    auth.signup(1, Role.FREE)
-    user = auth.get_user(1)
-    assert auth.free_endpoint(user) == "Free endpoint"
+def test_get_analytics():
+    auth_licence = AuthLicence()
+    auth_licence.track_revenue(10.0, 1)
+    auth_licence.track_revenue(20.0, 2)
+    total_revenue, user_activity = auth_licence.get_analytics()
+    assert total_revenue == 30.0
+    assert user_activity == {1: 10.0, 2: 20.0}
 
-def test_pro_endpoint():
-    auth = AuthLicence()
-    auth.signup(1, Role.PRO)
-    user = auth.get_user(1)
-    assert auth.pro_endpoint(user) == "Pro endpoint"
-
-def test_admin_endpoint():
-    auth = AuthLicence()
-    auth.signup(1, Role.ADMIN)
-    user = auth.get_user(1)
-    assert auth.admin_endpoint(user) == "Admin endpoint"
-
-def test_unauthorized_access():
-    auth = AuthLicence()
-    auth.signup(1, Role.FREE)
-    user = auth.get_user(1)
-    try:
-        auth.pro_endpoint(user)
-        assert False, "Expected 403 Forbidden"
-    except Exception as e:
-        assert str(e) == "403 Forbidden: User role Role.FREE is not Role.PRO"
-
-def test_call_endpoint():
-    auth = AuthLicence()
-    auth.signup(1, Role.FREE)
-    user = auth.get_user(1)
-    assert auth.call_endpoint("free_endpoint", user) == "Free endpoint"
-
-def test_call_nonexistent_endpoint():
-    auth = AuthLicence()
-    auth.signup(1, Role.FREE)
-    user = auth.get_user(1)
-    try:
-        auth.call_endpoint("nonexistent_endpoint", user)
-        assert False, "Expected exception"
-    except Exception as e:
-        assert str(e) == "Endpoint nonexistent_endpoint not found"
+def test_detect_fraud():
+    auth_licence = AuthLicence()
+    for _ in range(11):
+        auth_licence.track_revenue(10.0, 1)
+    fraud_users = auth_licence.detect_fraud()
+    assert fraud_users == {1: 11}
