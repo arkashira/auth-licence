@@ -1,10 +1,7 @@
-[project]
-name = "auth-licence"
-version = "0.1.0"
-description = "Simple anti‑piracy incident logger with SQLite persistence."
-requires-python = ">=3.9"
-authors = [{name = "Axentx AI"}]
-
 [build-system]
-requires = ["setuptools>=61.0"]
+requires = ["setuptools"]
 build-backend = "setuptools.build_meta"
+
+[project]
+name = "axentx-product"
+version = "0.1.0"
