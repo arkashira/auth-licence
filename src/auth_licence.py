@@ -1,37 +1,45 @@
 import json
 from dataclasses import dataclass
-from datetime import datetime, timedelta
+from datetime import datetime
+from typing import Dict
 
 @dataclass
-class AuthConfig:
-    """Dataclass to hold authentication configuration"""
-    username: str
-    password: str
-    expiry: datetime
+class License:
+    key: str
+    email: str
+    purchase_date: str
 
-def setup_auth(config: AuthConfig) -> str:
-    """Set up authentication with the given configuration"""
-    if not isinstance(config, AuthConfig):
-        raise TypeError("Invalid configuration")
-    auth_data = {
-        "username": config.username,
-        "password": config.password,
-        "expiry": config.expiry.isoformat()
-    }
-    return json.dumps(auth_data)
+class AuthLicence:
+    def __init__(self):
+        self.licenses = {}
+        self.stripe_checkout = StripeCheckout()
 
-def validate_auth(auth_data: str) -> bool:
-    """Validate the authentication data"""
-    try:
-        data = json.loads(auth_data)
-        expiry = datetime.fromisoformat(data["expiry"])
-        return expiry > datetime.now()
-    except (json.JSONDecodeError, KeyError):
-        return False
+    def purchase_license(self, email: str) -> License:
+        payment_result = self.stripe_checkout.process_payment(email)
+        if payment_result:
+            license_key = self.generate_license_key(email)
+            self.licenses[license_key] = License(license_key, email, datetime.now().strftime("%Y-%m-%d"))
+            self.send_license_key_via_email(email, license_key)
+            return self.licenses[license_key]
+        else:
+            raise Exception("Payment failed")
 
-def integrate_with_web_app(auth_data: str) -> str:
-    """Integrate the authentication system with the web app"""
-    if validate_auth(auth_data):
-        return "Authentication successful"
-    else:
-        return "Authentication failed"
+    def generate_license_key(self, email: str) -> str:
+        return f"LICENSE-{email}"
+
+    def send_license_key_via_email(self, email: str, license_key: str) -> None:
+        # Simulate sending an email
+        print(f"Sending license key {license_key} to {email}")
+
+class StripeCheckout:
+    def process_payment(self, email: str) -> bool:
+        # Simulate payment processing
+        return True
+
+def main():
+    auth_licence = AuthLicence()
+    license = auth_licence.purchase_license("user@example.com")
+    print(license)
+
+if __name__ == "__main__":
+    main()

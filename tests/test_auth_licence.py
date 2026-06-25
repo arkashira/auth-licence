@@ -1,33 +1,29 @@
-from src.auth_licence import setup_auth, validate_auth, integrate_with_web_app, AuthConfig
-from datetime import datetime, timedelta
+from auth_licence import AuthLicence, License
 import pytest
 
-def test_setup_auth():
-    config = AuthConfig("test_user", "test_password", datetime.now() + timedelta(minutes=10))
-    auth_data = setup_auth(config)
-    assert "test_user" in auth_data
-    assert "test_password" in auth_data
+def test_purchase_license():
+    auth_licence = AuthLicence()
+    license = auth_licence.purchase_license("user@example.com")
+    assert isinstance(license, License)
+    assert license.key == "LICENSE-user@example.com"
+    assert license.email == "user@example.com"
+    assert license.purchase_date
 
-def test_validate_auth_valid():
-    config = AuthConfig("test_user", "test_password", datetime.now() + timedelta(minutes=10))
-    auth_data = setup_auth(config)
-    assert validate_auth(auth_data)
+def test_purchase_license_payment_failed():
+    class StripeCheckout:
+        def process_payment(self, email: str) -> bool:
+            return False
+    auth_licence = AuthLicence()
+    auth_licence.stripe_checkout = StripeCheckout()
+    with pytest.raises(Exception):
+        auth_licence.purchase_license("user@example.com")
 
-def test_validate_auth_expired():
-    config = AuthConfig("test_user", "test_password", datetime.now() - timedelta(minutes=10))
-    auth_data = setup_auth(config)
-    assert not validate_auth(auth_data)
+def test_generate_license_key():
+    auth_licence = AuthLicence()
+    license_key = auth_licence.generate_license_key("user@example.com")
+    assert license_key == "LICENSE-user@example.com"
 
-def test_integrate_with_web_app_success():
-    config = AuthConfig("test_user", "test_password", datetime.now() + timedelta(minutes=10))
-    auth_data = setup_auth(config)
-    assert integrate_with_web_app(auth_data) == "Authentication successful"
-
-def test_integrate_with_web_app_failure():
-    config = AuthConfig("test_user", "test_password", datetime.now() - timedelta(minutes=10))
-    auth_data = setup_auth(config)
-    assert integrate_with_web_app(auth_data) == "Authentication failed"
-
-def test_setup_auth_invalid_config():
-    with pytest.raises(TypeError):
-        setup_auth("invalid_config")
+def test_send_license_key_via_email():
+    auth_licence = AuthLicence()
+    auth_licence.send_license_key_via_email("user@example.com", "LICENSE-KEY")
+    # No assertion, just checking it doesn't raise an exception
